@@ -54,6 +54,10 @@
   .pickCol { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff4; cursor: pointer; }
   .pickCol.on { border-color: #ffd740; box-shadow: 0 0 10px #ffd740; }
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#d32f2f">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <canvas id="gl"></canvas>
@@ -116,6 +120,7 @@
     <div class="vol"><label><span data-t="music"></span><b id="musVal"></b></label><input type="range" id="musRange" min="0" max="100" step="5"></div>
     <div class="vol"><label><span data-t="sfx"></span><b id="sfxVal"></b></label><input type="range" id="sfxRange" min="0" max="100" step="5"></div>
     <div class="row2"><button class="btn alt" id="muteBtn"></button><button class="btn alt" id="engBtn"></button></div>
+    <button class="btn alt" id="gfxBtn"></button>
     <button class="btn" id="setBack" data-t="back"></button>
   </div>
 </div>
@@ -126,7 +131,10 @@
   const glc = document.getElementById('gl');
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  const gl = glc.getContext('webgl', { antialias: true, alpha: false }) || glc.getContext('experimental-webgl');
+  // qualidade gráfica: 'auto' mede o celular e ajusta sozinho; 0 = leve, 1 = médio, 2 = alto
+  const GFX = { mode: 'auto', level: 2 };
+  try { GFX.mode = localStorage.getItem('turboGfx') || 'auto'; const a = localStorage.getItem('turboGfxAuto'); GFX.level = GFX.mode === 'auto' ? (a !== null ? +a : ('ontouchstart' in window ? 1 : 2)) : +GFX.mode; } catch (e) {}
+  const gl = glc.getContext('webgl', { antialias: GFX.level >= 2, alpha: false, powerPreference: 'high-performance' }) || glc.getContext('experimental-webgl');
   const RW = 512, RH = 288;
   const $ = id => document.getElementById(id);
   let W, H, DPR, sc, ox = 0, oy = 0, GW = 1, GH = 1;
@@ -134,7 +142,7 @@
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
-    const q = Math.min(DPR, 1.5); // 3D numa resolução um pouco menor pra ficar leve no celular
+    const q = [Math.min(DPR, 1) * 0.72, Math.min(DPR, 1), Math.min(DPR, 1.5)][GFX.level]; // resolução do 3D conforme a qualidade
     GW = Math.round(W * q); GH = Math.round(H * q); glc.width = GW; glc.height = GH;
     sc = W / RW; ox = 0; oy = 0;
     $('rotHint').style.display = (H > W && 'ontouchstart' in window) ? 'block' : 'none';
@@ -161,6 +169,7 @@
       race: 'Corrida {n} de 4', lvl: 'nível', max: 'MÁXIMO', need: 'Falta dinheiro!', you: 'VOCÊ', wrong: 'FORA DA PISTA!',
       tMe: ['Tchau, {n}! 👋', 'Come poeira, {n}! 💨', 'Isso aí é carro ou geladeira, {n}? 🧊', 'Olha o retrovisor, {n}! 😎', 'Vai de bicicleta, {n}? 🚲', 'Fica pra próxima, {n}!', 'Aprende comigo, {n}! 🏎️', 'Segura essa, {n}!', 'Freou cedo demais, {n}! 😜', 'Licença, {n}, tô com pressa!', 'Até mais, lerdinho! 🐢', 'Buzina pra mim, {n}! 📯'],
       tRival: ['{n}: Fui! 😜', '{n}: Lerdinho! 🐢', '{n}: Vê se me alcança! 💨', '{n}: Hoje não, parceiro!', '{n}: Bem-vindo à poeira! 😎', '{n}: Volta pra autoescola! 🚗'],
+      gfx: 'Gráfico', gAuto: 'Automático', g0: 'Leve', g1: 'Médio', g2: 'Alto',
       listen: '🔊 OUVIR O MOTOR', dmg: 'DANO', broken: 'MOTOR QUEBRADO!', hit: 'DANO +{n}%', repair: '🔧 CONSERTAR CARRO ({n}%) · 💰 {c}', repaired: 'Carro consertado!', noDmg: '✅ Carro sem dano', dmgInfo: 'Dano no carro: {n}%',
       ups: { armor: ['Blindagem', 'Batidas causam menos dano'], engine: ['Motor', 'Mais velocidade máxima'], turbo: ['Turbo', 'Acelera mais rápido'], tires: ['Pneus', 'Segura melhor nas curvas'], nitro: ['Nitro', '+1 nitro por corrida'] },
       tracks: [['PRAIA TROPICAL', 'Coqueiros e mar'], ['CÂNION DO DESERTO', 'Calor e subidas'], ['SERRA NEVADA', 'Neve e curvas fechadas'], ['CIDADE NEON', 'Corrida à noite']]
@@ -177,6 +186,7 @@
       race: 'Race {n} of 4', lvl: 'level', max: 'MAX', need: 'Not enough money!', you: 'YOU', wrong: 'OFF ROAD!',
       tMe: ['Bye, {n}! 👋', 'Eat my dust, {n}! 💨', 'Is that a car or a fridge, {n}? 🧊', 'Check your mirror, {n}! 😎', 'Need a bike, {n}? 🚲', 'Better luck next time, {n}!', 'Learn from the best, {n}! 🏎️', 'Too slow, {n}!', 'You braked too early, {n}! 😜', 'Excuse me, {n}, in a hurry!', 'See ya, slowpoke! 🐢', 'Honk if you see me, {n}! 📯'],
       tRival: ['{n}: Later! 😜', '{n}: Slowpoke! 🐢', '{n}: Catch me if you can! 💨', '{n}: Not today, buddy!', '{n}: Welcome to my dust! 😎', '{n}: Back to driving school! 🚗'],
+      gfx: 'Graphics', gAuto: 'Auto', g0: 'Low', g1: 'Medium', g2: 'High',
       listen: '🔊 HEAR THE ENGINE', dmg: 'DAMAGE', broken: 'ENGINE BROKEN!', hit: 'DAMAGE +{n}%', repair: '🔧 REPAIR CAR ({n}%) · 💰 {c}', repaired: 'Car repaired!', noDmg: '✅ No damage', dmgInfo: 'Car damage: {n}%',
       ups: { armor: ['Armor', 'Crashes cause less damage'], engine: ['Engine', 'Higher top speed'], turbo: ['Turbo', 'Faster acceleration'], tires: ['Tires', 'Better grip in turns'], nitro: ['Nitro', '+1 nitro per race'] },
       tracks: [['TROPICAL BEACH', 'Palm trees and sea'], ['DESERT CANYON', 'Heat and hills'], ['SNOWY RIDGE', 'Snow and tight turns'], ['NEON CITY', 'Night race']]
@@ -900,12 +910,12 @@
   // ---- partículas 3D (pontos)
   let parts = [], flakes = [];
   const pbuf = gl ? gl.createBuffer() : null;
-  function addPart(p, v, life, col, size, grow, additive) { if (parts.length > 400) parts.shift(); parts.push({ p: p.slice(), v, life, max: life, col, size, grow: grow || 0, add: !!additive }); }
+  function addPart(p, v, life, col, size, grow, additive) { if (parts.length > [110, 230, 400][GFX.level]) parts.shift(); parts.push({ p: p.slice(), v, life, max: life, col, size, grow: grow || 0, add: !!additive }); }
   function updateParticles(dt) {
     parts.forEach(q => { q.p[0] += q.v[0] * dt; q.p[1] += q.v[1] * dt; q.p[2] += q.v[2] * dt; q.life -= dt; q.size += q.grow * dt; });
     parts = parts.filter(q => q.life > 0);
     if (theme && theme.bg === 'snow' && camEye) {
-      while (flakes.length < 500) flakes.push([camEye[0] + rand(-40, 40), camEye[1] + rand(-5, 30), camEye[2] + rand(-40, 40), rand(2, 4)]);
+      while (flakes.length < [110, 250, 500][GFX.level]) flakes.push([camEye[0] + rand(-40, 40), camEye[1] + rand(-5, 30), camEye[2] + rand(-40, 40), rand(2, 4)]);
       flakes.forEach(f => { f[1] -= f[3] * dt; f[0] += Math.sin(time + f[2]) * dt; if (f[1] < camEye[1] - 8 || Math.abs(f[0] - camEye[0]) > 45 || Math.abs(f[2] - camEye[2]) > 45) { f[0] = camEye[0] + rand(-40, 40); f[1] = camEye[1] + rand(10, 30); f[2] = camEye[2] + rand(-40, 40); } });
     } else flakes = [];
   }
@@ -1028,12 +1038,13 @@
     const u = prog.u;
     gl.uniformMatrix4fv(u.uVP, false, VP); gl.uniform3fv(u.uEye, eye);
     const sd = T.sunDir; gl.uniform3fv(u.uSun, sd); gl.uniform3fv(u.uSunCol, T.sunCol); gl.uniform3fv(u.uAmb, T.amb);
-    gl.uniform3fv(u.uFog, fog.slice(0, 3)); gl.uniform1f(u.uFogD, T.fogD);
+    gl.uniform3fv(u.uFog, fog.slice(0, 3)); gl.uniform1f(u.uFogD, T.fogD * [1.5, 1.15, 1][GFX.level]);
     // céu acompanha a câmera
     gl.depthMask(false); drawMesh(meshes.sky, { m: M4.basis([1, 0, 0], [0, 1, 0], [0, 0, 1], eye), noFog: true }); gl.depthMask(true);
     gl.uniform1f(u.uFogD, T.fogD * 0.4);
     drawMesh(meshes.farG, { tex: tex.ground }); drawMesh(meshes.farW);
-    gl.uniform1f(u.uFogD, T.fogD);
+    gl.uniform1f(u.uFogD, T.fogD * [1.5, 1.15, 1][GFX.level]);
+    VIEW = [400, 520, 650][GFX.level];
     const near = chunks.filter(c => { const dx = c.c[0] - eye[0], dz = c.c[2] - eye[2], d = Math.hypot(dx, dz); if (d - c.r > VIEW) return false; return (dx * camF[0] + dz * camF[2]) > -c.r; });
     near.forEach(c => drawMesh(c.ground, { tex: tex.ground }));
     gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -2);
@@ -1085,7 +1096,7 @@
       if (cw > 0) { const nx = cx / cw, ny = cy / cw; if (Math.abs(nx) < 1.3 && Math.abs(ny) < 1.3) sunScreen = [(nx * 0.5 + 0.5) * W, (0.5 - ny * 0.5) * H, 1 - Math.min(1, Math.hypot(nx, ny) / 1.4)]; } }
   }
   let glows = [], rollVis = 0, wheelA = 0;
-  let yawVis = 0, camFov = 0; const VIEW = 650;
+  let yawVis = 0, camFov = 0; let VIEW = 650;
 
   // ================= Estado da corrida =================
   const CAR_COLORS = ['#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00', '#00acc1', '#f06292', '#6d4c41', '#c0ca33', '#ffffff', '#3949ab'];
@@ -1592,10 +1603,17 @@
   function refreshSettings() {
     $('musRange').value = Math.round(save.snd.music * 100); $('musVal').textContent = $('musRange').value + '%';
     $('sfxRange').value = Math.round(save.snd.sfx * 100); $('sfxVal').textContent = $('sfxRange').value + '%';
+    $('gfxBtn').textContent = '🖥️ ' + t('gfx') + ': ' + (GFX.mode === 'auto' ? t('gAuto') + ' (' + t('g' + GFX.level) + ')' : t('g' + GFX.level));
     $('muteBtn').textContent = save.snd.mute ? t('unmute') : t('mute'); $('engBtn').textContent = save.snd.engine ? t('engOn') : t('engOff');
   }
   function openSettings() { audio(); if (state === 'race') { paused = true; pausedBySet = true; } refreshSettings(); $('settings').classList.remove('hidden'); }
   $('setBtn').addEventListener('click', () => { openSettings(); if (!song) setSong('menu'); });
+  $('gfxBtn').addEventListener('click', () => {
+    const order = ['auto', '0', '1', '2'], nx = order[(order.indexOf(GFX.mode) + 1) % order.length];
+    GFX.mode = nx; if (nx !== 'auto') GFX.level = +nx; else { try { const a = localStorage.getItem('turboGfxAuto'); GFX.level = a !== null ? +a : 1; } catch (e) {} }
+    try { localStorage.setItem('turboGfx', nx); } catch (e) {}
+    fpsN = 0; fpsT = 0; fpsSkip = 1.5; resize(); refreshSettings(); tone(660, 0.06, 'square', 0.04);
+  });
   $('setBack').addEventListener('click', () => { $('settings').classList.add('hidden'); if (pausedBySet) { paused = false; pausedBySet = false; } });
   $('musRange').addEventListener('input', e => { save.snd.music = e.target.value / 100; save.snd.mute = false; applyVol(); persist(); refreshSettings(); });
   $('sfxRange').addEventListener('input', e => { save.snd.sfx = e.target.value / 100; save.snd.mute = false; applyVol(); persist(); refreshSettings(); });
@@ -1617,8 +1635,8 @@
   // acabamento de cinema: reflexo do sol na lente, vinheta e borrão de velocidade
   let vig = null, vigW = 0, vigH = 0;
   function post() {
-    if (!gl) return;
-    if (sunScreen) {
+    if (!gl || GFX.level === 0) return;
+    if (sunScreen && GFX.level === 2) {
       const [sx, sy, k] = sunScreen, cx = W / 2, cy = H / 2;
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, H * 0.55); g.addColorStop(0, `rgba(255,240,200,${0.45 * k})`); g.addColorStop(1, 'rgba(255,240,200,0)');
@@ -1642,9 +1660,20 @@
       ctx.restore();
     }
   }
-  let last = performance.now(), acc = 0;
+  let last = performance.now(), acc = 0, fpsN = 0, fpsT = 0, fpsSkip = 1.5;
+  function autoGfx(dt) {
+    if (GFX.mode !== 'auto' || paused || document.hidden) return;
+    if (fpsSkip > 0) { fpsSkip -= dt; return; }
+    fpsN++; fpsT += dt;
+    if (fpsT < 3) return;
+    const fps = fpsN / fpsT; fpsN = 0; fpsT = 0;
+    let lv = GFX.level;
+    if (fps < 40 && lv > 0) lv--;
+    else if (fps > 58 && lv < 2 && !('ontouchstart' in window)) lv++;
+    if (lv !== GFX.level) { GFX.level = lv; try { localStorage.setItem('turboGfxAuto', lv); } catch (e) {} resize(); fpsSkip = 1.5; if (!$('settings').classList.contains('hidden')) refreshSettings(); }
+  }
   function frame(now) {
-    let dt = (now - last) / 1000; last = now; if (dt > 0.1) dt = 0.1;
+    let dt = (now - last) / 1000; last = now; autoGfx(Math.min(dt, 0.5)); if (dt > 0.1) dt = 0.1;
     if (state === 'race') { if (!paused) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } } }
     else { time += dt; menuDrive(dt); }
     try { render3D(dt); } catch (e) { console.error(e); }
@@ -1657,5 +1686,6 @@
   requestAnimationFrame(frame);
 })();
 </script>
+<script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 </body>
 </html>
